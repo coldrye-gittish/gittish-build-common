@@ -1,0 +1,147 @@
+# Copyright 2017 Carsten Klein
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+ifndef __GTS_BUILD_COMMON_MULTI__
+
+$(info include $(lastword $(MAKEFILE_LIST)))
+
+ifndef __GTS_BUILD_COMMON_PROJECT__
+ifndef GTS_BUILD_COMMON
+$(error must include <WORKSPACE_ROOT>/gittish-build-common/CONFIG.in)
+endif
+include $(GTS_BUILD_COMMON)/Makefile.project.in
+endif
+
+
+.PHONY: help
+ifndef GTS_BUILD_PROJECT
+$(error GTS_BUILD_PROJECT not defined, must include <WORKSPACE_ROOT>/<PROJECT_ROOT>/CONFIG.in)
+endif
+
+# make sure that SUBDIRS has been defined
+ifndef SUBDIRS
+
+$(info including $(GTS_BUILD_PROJECT)/Makefile.subdirs.in)
+include $(GTS_BUILD_PROJECT)/Makefile.subdirs.in
+
+ifndef SUBDIRS
+$(error SUBDIRS must be defined in $(GTS_BUILD_PROJECT)/Makefile.subdirs.in)
+endif
+endif
+
+ifndef __GTS_BUILD_COMMON_PROJECT__
+ifndef GTS_BUILD_COMMON
+$(error GTS_BUILD_COMMON not defined, must include <WORKSPACE_ROOT>/gittish-build-common/CONFIG.in)
+endif
+include $(GTS_BUILD_COMMON)/Makefile.project.in
+endif
+
+
+# make sure that listed subdirs exist
+.PHONY: $(SUBDIRS:%=__subdir_exists-%)
+
+PRE_BUILD_TARGETS += $(SUBDIRS:%=__subdir_exists-%)
+
+$(SUBDIRS:%=__subdir_exists-%):
+	@subdir=$(@:__subdir_exists-%=%) && test -d $$subdir || (echo "subdir $$subdir does not exist" && exit 1)
+
+
+CLEAN_TARGETS += $(SUBDIRS:%=%-clean)
+HELP_DOC += $(CLEAN_TARGETS:%=\\t% - clean everything\\n)
+
+#.PHONY: $(CLEAN_TARGETS)
+
+$(CLEAN_TARGETS):
+	@-echo Goal: $@
+	$(MAKE) -C $(@:%-clean=%) clean
+
+
+LINT_TARGETS += $(SUBDIRS:%=%-lint)
+HELP_DOC += $(LINT_TARGETS:%=\\t% - lint existing sources\\n)
+
+#.PHONY: $(LINT_TARGETS)
+
+$(LINT_TARGETS):
+	@-echo Goal: $@
+	$(MAKE) -C $(@:%-lint=%) lint
+
+
+BUILD_TARGETS += $(SUBDIRS:%=%-build)
+HELP_DOC += $(BUILD_TARGETS:%=\\t% - [re]build sources\\n)
+
+#.PHONY: $(BUILD_TARGETS)
+
+$(BUILD_TARGETS):
+	@-echo Goal: $@
+	$(MAKE) -C $(@:%-build=%) build
+
+
+DOC_TARGETS += $(SUBDIRS:%=%-doc)
+HELP_DOC += $(DOC_TARGETS:%=\\t% - [re]generate documentation\\n)
+
+#.PHONY: $(DOC_TARGETS)
+
+$(DOC_TARGETS):
+	@-echo Goal: $@
+	$(MAKE) -C $(@:%-doc=%) doc
+
+
+TEST_TARGETS += $(SUBDIRS:%=%-test)
+HELP_DOC += $(TEST_TARGETS:%=\\t% - [re]test sources\\n)
+
+#.PHONY: $(TEST_TARGETS)
+
+$(TEST_TARGETS):
+	@-echo Goal: $@
+	$(MAKE) -C $(@:%-test=%) test
+
+
+COVERAGE_TARGETS += $(SUBDIRS:%=%-coverage)
+HELP_DOC += $(COVERAGE_TARGETS:%=\\t% - gather test coverage\\n)
+
+#.PHONY: $(COVERAGE_TARGETS)
+
+$(COVERAGE_TARGETS):
+	@-echo Goal: $@
+	$(MAKE) -C $(@:%-coverage=%) coverage 
+
+
+DIST_TARGETS += $(SUBDIRS:%=%-dist)
+HELP_DOC += $(DIST_TARGETS:%=\\t% - [re]package sources\\n)
+
+#.PHONY: $(DIST_TARGETS) 
+
+$(DIST_TARGETS):
+	@-echo Goal: $@
+	$(MAKE) -C $(@:%-dist=%) dist
+
+
+DIST_CLEAN_TARGETS += $(SUBDIRS:%=%-dist-clean)
+HELP_DOC += $(DIST_CLEAN_TARGETS:%=\\t% - clean distribution\\n)
+
+$(DIST_CLEAN_TARGETS):
+	@-echo Goal: $@
+	$(MAKE) -C $(@:%-dist-clean=%) dist-clean
+
+
+# define guard
+__GTS_BUILD_COMMON_MULTI__ = 1
+
+else
+
+$(warning extraneous include of $(lastword $(MAKEFILE_LIST)))
+
+endif
+
+# vim: noexpandtab:ts=2:sw=2:

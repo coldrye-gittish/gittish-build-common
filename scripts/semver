@@ -1,0 +1,132 @@
+#!/bin/bash
+
+
+function usage()
+{
+  echo "usage: semver [--help] [--bump=major|minor|patch|tag VERSION_FILE] [--tag=dev|rc|final] VERSION_FILE"
+}
+
+BUMP=
+TAG=
+FILE=
+
+while [ $# -gt 0 ]; do
+
+  arg=$1
+
+  case $arg in
+    --help)
+      usage
+      exit 0
+      ;;
+    --bump*)
+      BUMP=$(echo $arg | cut -f2 -d '=')
+      case $BUMP in
+        major|minor|patch|tag)
+          ;;
+        *)
+          echo "unknown bump $BUMP" >&2
+          usage
+          exit 1
+          ;;
+      esac
+      ;;
+    --tag*)
+      TAG=$(echo $arg | cut -f2 -d '=')
+      case $TAG in
+        dev)
+          TAG=".dev"
+          ;;
+        rc)
+          TAG="rc"
+          ;;
+        final)
+          ;;
+        *)
+          echo "unknown tag $TAG" >&2
+          usage
+          exit 1
+      esac
+      ;;
+    *)
+      FILE=$arg
+      ;;
+  esac
+
+  shift
+done
+
+if [ -z "$BUMP$TAG" ]; then
+  echo "missing bump a/o tag" >&2
+  usage | cat >&2
+  exit 1
+fi
+
+if [ ! -f $FILE ]; then
+  echo "missing version file" >&2
+  usage
+  exit 1
+fi
+
+CONTENT=$(cat $FILE | tr -d ' \t\n\r')
+OVERSION=$CONTENT
+VERSION=$OVERSION
+VTAG=$(echo $CONTENT | sed -r "s/^(([0-9]+[.]){2}([0-9]+))(.*)$/\4/")
+ETAG=
+TAGVER=
+if [ ! -z "$VTAG" ]; then
+  VERSION=$(echo $CONTENT | sed -r "s/($VTAG)//")
+  ETAG=$(echo $VTAG | sed -r "s/^(.+)[0-9]+$/\1/")
+  TAGVER=$(echo $VTAG | sed -r "s/^.+([0-9]+)$/\1/")
+fi
+MAJOR=$(echo $VERSION | cut -f1 -d '.')
+MINOR=$(echo $VERSION | cut -f2 -d '.')
+PATCH=$(echo $VERSION | cut -f3 -d '.')
+
+if [ ! -z "$BUMP" ]; then
+  case $BUMP in
+    major)
+      MAJOR=$(expr $MAJOR + 1)
+      MINOR=0
+      PATCH=0
+      ;;
+    minor)
+      MINOR=$(expr $MINOR + 1)
+      PATCH=0
+      ;;
+    patch)
+      PATCH=$(expr $PATCH + 1)
+      ;;
+    tag)
+      if [ -z "$TAGVER" ]; then
+        TAGVER=0
+      fi
+      TAGVER=$(expr $TAGVER + 1)
+      ;;
+  esac
+fi
+
+if [ ! -z "$TAG" ]; then
+  case $TAG in
+    final)
+      ETAG=
+      TAGVER=
+      ;;
+    *)
+      if [ "$TAG" != "$ETAG" ]; then
+        TAGVER=1
+      fi
+      ETAG=$TAG
+      ;;
+  esac
+fi
+
+OUT="$MAJOR.$MINOR.$PATCH"
+if [ ! -z "$ETAG" ]; then
+  OUT="${OUT}${ETAG}${TAGVER}"
+fi
+
+echo "bumped version from $OVERSION to $OUT"
+echo -n $OUT > $FILE
+
+# vim: expandtab:ts=2:sw=2:

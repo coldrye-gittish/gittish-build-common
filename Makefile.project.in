@@ -1,0 +1,130 @@
+# Copyright 2017 Carsten Klein
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+ifndef __GTS_BUILD_COMMON_PROJECT__
+
+$(info include $(lastword $(MAKEFILE_LIST)))
+
+
+ifndef __GTS_BUILD_COMMON_COMMON__
+ifndef GTS_BUILD_COMMON
+$(error must include <WORKSPACE_ROOT>/gittish-build-common/CONFIG.in)
+endif
+include $(GTS_BUILD_COMMON)/Makefile.common.in
+endif
+
+
+.PHONY: help
+
+HELP_DOC += 
+
+help:
+	@-echo Targets for $$(test -n "$(RUNTIME)" && echo $(PROJECT)/$(RUNTIME) || echo $(PROJECT)) are
+	@-echo
+	@-echo "\thelp [default] - this help information"
+	@-echo "\tall - clean and [re]build everything"
+	@-echo "\tclean - clean everything"
+	@-echo "\tdist-clean - clean the distribution"
+	@-echo "\tlint - lint all sources"
+	@-echo "\tbuild - [re]build all sources"
+	@-echo "\tdoc - [re]generate all documentation"
+	@-echo "\ttest - [re]test all sources"
+	@-echo "\tcoverage - gather test coverage"
+	@-echo "\tdist - [re]package all sources"
+	@-test -n "$(HELP_DOC)" && \
+		(echo && \
+		echo Runtime specific targets are && \
+		echo && \
+		echo "$$(echo $(HELP_DOC) | sort | grep -v "^$$")") || \
+		true
+
+
+.PHONY: all
+
+all: dist-clean clean lint build doc test coverage dist
+
+
+.SECONDEXPANSION:
+.PHONY: clean $$(PRE_CLEAN_TARGETS) $$(CLEAN_TARGETS) $$(POST_CLEAN_TARGETS)
+
+.SECONDEXPANSION:
+clean: $$(PRE_CLEAN_TARGETS) $$(CLEAN_TARGETS) $$(POST_CLEAN_TARGETS)
+	@-test -d $(DIST_BUILD_DIR) && \
+		rmdir -p $(DIST_BUILD_DIR)
+	@-test -d $(BUILD_DIR) && \
+		rmdir -p $(BUILD_DIR)
+
+
+.SECONDEXPANSION:
+.PHONY: lint $$(PRE_LINT_TARGETS) $$(LINT_TARGETS) $$(POST_LINT_TARGETS)
+
+.SECONDEXPANSION:
+lint: $$(PRE_LINT_TARGETS) $$(LINT_TARGETS) $$(POST_LINT_TARGETS)
+
+
+.SECONDEXPANSION:
+.PHONY: build $$(PRE_BUILD_TARGETS) $$(BUILD_TARGETS) $$(POST_BUILD_TARGETS)
+
+.SECONDEXPANSION:
+build: $(BUILD_DIR) $$(PRE_BUILD_TARGETS) $$(BUILD_TARGETS) $$(POST_BUILD_TARGETS)
+
+
+.SECONDEXPANSION:
+.PHONY: doc $$(PRE_DOC_TARGETS) $$(DOC_TARGETS) $$(POST_DOC_TARGETS)
+
+.SECONDEXPANSION:
+doc: $$(PRE_DOC_TARGETS) $$(DOC_TARGETS) $$(POST_DOC_TARGETS)
+
+
+.SECONDEXPANSION:
+.PHONY: test $$(PRE_TEST_TARGETS) $$(TEST_TARGETS) $$(POST_TEST_TARGETS)
+
+.SECONDEXPANSION:
+test: $$(PRE_TEST_TARGETS) $$(TEST_TARGETS) $$(POST_TEST_TARGETS)
+
+
+.SECONDEXPANSION:
+.PHONY: coverage $$(PRE_COVERAGE_TARGETS) $$(COVERAGE_TARGETS) $$(POST_COVERAGE_TARGETS)
+
+.SECONDEXPANSION:
+coverage: $$(PRE_COVERAGE_TARGETS) $$(COVERAGE_TARGETS) $$(POST_COVERAGE_TARGETS)
+
+
+.SECONDEXPANSION:
+.PHONY: dist $$(PRE_DIST_TARGETS) $$(DIST_TARGETS) $$(POST_DIST_TARGETS)
+
+.SECONDEXPANSION:
+dist: $(DIST_DIR) $$(PRE_DIST_TARGETS) $$(DIST_TARGETS) $$(POST_DIST_TARGETS)
+
+
+.SECONDEXPANSION:
+.PHONY: dist-clean $$(PRE_DIST_CLEAN_TARGETS) $$(DIST_CLEAN_TARGETS) $$(POST_DIST_CLEAN_TARGETS)
+
+.SECONDEXPANSION:
+dist-clean: $$(PRE_DIST_CLEAN_TARGETS) $$(DIST_CLEAN_TARGETS) $$(POST_DIST_CLEAN_TARGETS)
+
+
+$(BUILD_DIR) $(DIST_DIR):
+	@mkdir -p $@
+
+# define guard
+__GTS_BUILD_COMMON_PROJECT__ = 1
+
+else
+
+$(warning extraneous include of $(lastword $(MAKEFILE_LIST)))
+
+endif
+
+# vim: noexpandtab:ts=2:sw=2:
